@@ -38,6 +38,7 @@ function love.load()
     unit = Unit:new{pos = UNITS_POS[i], size = {width = EFF_TILE_SIZE, height = EFF_TILE_SIZE}, sprite = square, relative_to = map, move = 3}
     table.insert(units, unit)
   end
+  map.units = units
 end
 
 function love.draw()
@@ -156,6 +157,11 @@ function Unit:accessibleSquares(map)
   return self.available_moves
 end
 
+function Unit:unselect()
+  --Reset available moves
+  self.available_moves = nil
+end
+
 function Unit:moveTo(square)
   --Change the position of the unit
   self.pos = square.pos
@@ -169,8 +175,29 @@ Map = Entity:new()
 Map.screen_part = {}
 Map.obstacles = {}
 Map.units = {}
+
 function Map:draw()
   love.graphics.draw(self.sprite, self.screen_part, self.pos.x, self.pos.y, 0, SCALING, SCALING)
+end
+
+function Map:squareIsEmpty(square)
+  --Checking if square is not beyond map limit
+  if square.pos.x >= map.pos.x and square.pos.x < map.size.width and square.pos.y >= map.pos.y and square.pos.y < map.size.height then
+    --Checking if there is no obstacle on the square
+    for i, o in ipairs(self.obstacles) do
+      if square.pos.x == o.x and square.pos.y == o.y then
+        return false
+      end
+    end
+    --Checking if there is no other unit on the square
+    for i, u in ipairs(self.units) do
+      if square.pos.x == u.pos.x and square.pos.y == u.pos.y then
+        return false
+      end
+    end
+    return true
+  end
+  return false
 end
 
 --Method to check all available squares next to the one given
@@ -180,19 +207,7 @@ function Map:nextAvailableSquares(sq)
   local squares = {} --Array for available squares
   for i, dir in ipairs(directions) do
     local square = Square:new{pos = {x = sq.pos.x + dir.x * EFF_TILE_SIZE, y = sq.pos.y + dir.y * EFF_TILE_SIZE}, sprite = possible_move} --Square to test
-    local available = false
-    --Checking if square is not beyond map limit
-    if square.pos.x >= map.pos.x and square.pos.x < map.size.width and square.pos.y >= map.pos.y and square.pos.y < map.size.height then
-      --Checking if there is no obstacle on the square
-      for i, o in ipairs(self.obstacles) do
-        if square.pos.x == o.x and square.pos.y == o.y then
-          available = false
-          break
-        end
-      end
-      available = true
-    end
-    if available then
+    if self:squareIsEmpty(square) then
       table.insert(squares, square)
     end
   end
@@ -203,7 +218,10 @@ end
 
 function love.mousepressed(x, y, button)
    if button == 1 then
-      selected_unit = nil
+      if selected_unit then
+        selected_unit:unselect()
+        selected_unit = nil
+      end
       for i, u in ipairs(units) do
         if u:isTouched(x, y) then
           selected_unit = u
