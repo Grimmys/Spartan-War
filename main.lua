@@ -21,23 +21,29 @@ function love.load()
   --Loading images
     -- Indicators
     possible_move = love.graphics.newImage("graphics/grid_indicators/move.png")
-    
-    -- Units
-    square = love.graphics.newImage("graphics/units/square.png")
   
   --Map creation
   map_sprite = love.graphics.newImage("graphics/maps/first_map.png")
   map = Map:new{pos = {x = BORDER_SIZE_W, y = BORDER_SIZE_H}, size = {width = MAP_WIDTH, height = MAP_HEIGHT}, sprite = map_sprite}
+  --Change relative map for future units
+  Unit.relative_to = map
   --Part of the map visible at screen
   map.screen_part = love.graphics.newQuad(0, 0, TILE_SIZE * TILES_LIMIT_W, TILE_SIZE * TILES_LIMIT_H, MAP_WIDTH, MAP_HEIGHT)
   
   --First units (for testing) creation
-  UNITS_POS = {{x = 0, y = 0}, {x = EFF_TILE_SIZE * 3, y = EFF_TILE_SIZE * 2}, {x = EFF_TILE_SIZE * 6, y = EFF_TILE_SIZE * 5}}
   units = {}
-  for i = 1, 3 do
-    unit = Unit:new{pos = UNITS_POS[i], size = {width = EFF_TILE_SIZE, height = EFF_TILE_SIZE}, sprite = square, relative_to = map, move = 3}
-    table.insert(units, unit)
-  end
+      -- One soldier at (0, 0)
+      unit = Soldier:new{pos = {x = 0, y = 0}}
+      table.insert(units, unit)
+      
+      -- One lancer at (3, 2)
+      unit = Lancer:new{pos = {x = EFF_TILE_SIZE * 3, y = EFF_TILE_SIZE * 2}}
+      table.insert(units, unit)
+      
+      -- One soldier at (6, 5)
+      unit = Soldier:new{pos = {x = EFF_TILE_SIZE * 6, y = EFF_TILE_SIZE * 5}}
+      table.insert(units, unit)
+
   map.units = units
 end
 
@@ -132,6 +138,8 @@ Square.size = {width = EFF_TILE_SIZE, height = EFF_TILE_SIZE}
 --Unit's prototype
 Unit = Entity:new()
 Unit.move = 0
+Unit.size = {width = EFF_TILE_SIZE, height = EFF_TILE_SIZE}
+Unit.sprite = love.graphics.newImage("graphics/units/square.png")
 
 function Unit:accessibleSquares(map)
   --Check if the calcul hasn't be already done
@@ -169,6 +177,16 @@ function Unit:moveTo(square)
   --Reset available moves
   self.available_moves = nil
 end
+
+--Soldier's prototype
+Soldier = Unit:new()
+Soldier.move = 3
+Soldier.sprite = love.graphics.newImage("graphics/units/red_soldier_right.png")
+
+--Lancer's prototype
+Lancer = Unit:new()
+Lancer.move = 2
+Lancer.sprite = love.graphics.newImage("graphics/units/red_lancer_right.png")
 
 --Map's prototype
 Map = Entity:new()
