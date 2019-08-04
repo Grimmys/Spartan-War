@@ -179,14 +179,18 @@ function Unit:moveTo(square)
 end
 
 --Soldier's prototype
+  --Load soldier's data
+require("data/units/soldier")
 Soldier = Unit:new()
-Soldier.move = 3
-Soldier.sprite = love.graphics.newImage("graphics/units/red_soldier_right.png")
+Soldier.move = Soldier_data.move
+Soldier.sprite = love.graphics.newImage(Soldier_data.sprite)
 
 --Lancer's prototype
+  --Load lancer's data
+require("data/units/lancer")
 Lancer = Unit:new()
-Lancer.move = 2
-Lancer.sprite = love.graphics.newImage("graphics/units/red_lancer_right.png")
+Lancer.move = Lancer_data.move
+Lancer.sprite = love.graphics.newImage(Lancer_data.sprite)
 
 --Map's prototype
 Map = Entity:new()
