@@ -1,4 +1,5 @@
 Lancer_data = {
   move = 2,
-  sprite = "graphics/units/red_lancer_right.png"
+  red_sprite = "graphics/units/red_lancer_right.png",
+  black_sprite = "graphics/units/black_lancer_right.png"
   }

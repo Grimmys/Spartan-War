@@ -12,6 +12,12 @@ BORDER_SIZE_H = 50
 WINDOW_WIDTH = EFF_TILE_SIZE * TILES_LIMIT_W + BORDER_SIZE_W * 2
 WINDOW_HEIGHT = EFF_TILE_SIZE * TILES_LIMIT_H + BORDER_SIZE_H * 2
 
+-- Game paramaters (actually, they are fixed)
+TEAM_COLORS = {
+    "red",
+    "black"
+  }
+
 function love.load()
   --Window configuration
   if not love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT) then
@@ -31,18 +37,24 @@ function love.load()
   map.screen_part = love.graphics.newQuad(0, 0, TILE_SIZE * TILES_LIMIT_W, TILE_SIZE * TILES_LIMIT_H, MAP_WIDTH, MAP_HEIGHT)
   
   --First units (for testing) creation
+    -- red is first team, black is second team
+  red_units = {}
+  black_units = {}
   units = {}
-      -- One soldier at (0, 0)
-      unit = Soldier:new{pos = {x = 0, y = 0}}
+      -- One red soldier at (0, 0)
+      unit = Soldier:new{pos = {x = 0, y = 0}, side = 1}
       table.insert(units, unit)
+      table.insert(red_units, unit)
       
-      -- One lancer at (3, 2)
-      unit = Lancer:new{pos = {x = EFF_TILE_SIZE * 3, y = EFF_TILE_SIZE * 2}}
+      -- One red lancer at (3, 2)
+      unit = Lancer:new{pos = {x = EFF_TILE_SIZE * 3, y = EFF_TILE_SIZE * 2}, side = 1}
       table.insert(units, unit)
+      table.insert(red_units, unit)
       
-      -- One soldier at (6, 5)
-      unit = Soldier:new{pos = {x = EFF_TILE_SIZE * 6, y = EFF_TILE_SIZE * 5}}
+      -- One black soldier at (6, 5)
+      unit = Soldier:new{pos = {x = EFF_TILE_SIZE * 6, y = EFF_TILE_SIZE * 5}, side = 2}
       table.insert(units, unit)
+      table.insert(black_units, unit)
 
   map.units = units
 end
@@ -140,6 +152,7 @@ Unit = Entity:new()
 Unit.move = 0
 Unit.size = {width = EFF_TILE_SIZE, height = EFF_TILE_SIZE}
 Unit.sprite = love.graphics.newImage("graphics/units/square.png")
+Unit.color_sprites = {}
 
 function Unit:accessibleSquares(map)
   --Check if the calcul hasn't be already done
@@ -178,19 +191,37 @@ function Unit:moveTo(square)
   self.available_moves = nil
 end
 
---Soldier's prototype
+--Function to create specific unit's prototype
+--  @return prototype 
+function createUnitPrototype(unit_data)
+  local unit_proto = Unit:new()
+  unit_proto.move = unit_data.move
+  unit_proto.color_sprites = {
+    red = love.graphics.newImage(unit_data.red_sprite),
+    black = love.graphics.newImage(unit_data.black_sprite)
+  }
+  function unit_proto:new(o)
+    ent = Unit:new(o)
+    ent.move = unit_proto.move
+    ent.sprite = unit_proto.color_sprites[TEAM_COLORS[ent.side]]
+    return ent
+  end
+  return unit_proto
+end
+
+--Soldier
   --Load soldier's data
 require("data/units/soldier")
-Soldier = Unit:new()
-Soldier.move = Soldier_data.move
-Soldier.sprite = love.graphics.newImage(Soldier_data.sprite)
+  --Create soldier's prototype
+Soldier = createUnitPrototype(Soldier_data)
+print(Soldier)
 
---Lancer's prototype
+--Lancer
   --Load lancer's data
 require("data/units/lancer")
-Lancer = Unit:new()
-Lancer.move = Lancer_data.move
-Lancer.sprite = love.graphics.newImage(Lancer_data.sprite)
+  --Create lancer's prototype
+Lancer = createUnitPrototype(Lancer_data)
+print(Lancer)
 
 --Map's prototype
 Map = Entity:new()
