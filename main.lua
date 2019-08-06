@@ -8,9 +8,13 @@ EFF_TILE_SIZE = TILE_SIZE * SCALING
 TILES_LIMIT_W = 35
 TILES_LIMIT_H = 20
 BORDER_SIZE_W = 50
-BORDER_SIZE_H = 50
+BORDER_SIZE_H = 100
 WINDOW_WIDTH = EFF_TILE_SIZE * TILES_LIMIT_W + BORDER_SIZE_W * 2
 WINDOW_HEIGHT = EFF_TILE_SIZE * TILES_LIMIT_H + BORDER_SIZE_H * 2
+
+-- Buttons size
+END_B_SIZE_W = 400
+END_B_SIZE_H = 100
 
 -- Game paramaters (actually, they are fixed)
 TEAM_COLORS = {
@@ -25,8 +29,11 @@ function love.load()
   end
   
   --Loading images
-    -- Indicators
+    --Indicators
     possible_move = love.graphics.newImage("graphics/grid_indicators/move.png")
+    
+    --Button's frame
+    button_sprite = love.graphics.newImage("graphics/interface/button_frame.png")
   
   --Map creation
   map_sprite = love.graphics.newImage("graphics/maps/first_map.png")
@@ -38,25 +45,34 @@ function love.load()
   
   --First units (for testing) creation
     -- red is first team, black is second team
-  red_units = {}
-  black_units = {}
+  units_by_side = {}
+  for i, _ in ipairs(TEAM_COLORS) do
+    units_by_side[i] = {}
+  end
   units = {}
       -- One red soldier at (0, 0)
       unit = Soldier:new{pos = {x = 0, y = 0}, side = 1}
       table.insert(units, unit)
-      table.insert(red_units, unit)
+      table.insert(units_by_side[1], unit)
       
       -- One red lancer at (3, 2)
       unit = Lancer:new{pos = {x = EFF_TILE_SIZE * 3, y = EFF_TILE_SIZE * 2}, side = 1}
       table.insert(units, unit)
-      table.insert(red_units, unit)
+      table.insert(units_by_side[1], unit)
       
       -- One black soldier at (6, 5)
       unit = Soldier:new{pos = {x = EFF_TILE_SIZE * 6, y = EFF_TILE_SIZE * 5}, side = 2}
       table.insert(units, unit)
-      table.insert(black_units, unit)
+      table.insert(units_by_side[2], unit)
 
   map.units = units
+  
+  --Buttons
+    --End turn
+  end_turn_b = Button:new{pos = {x = WINDOW_WIDTH - (END_B_SIZE_W + 100) * SCALING, y = WINDOW_HEIGHT - (END_B_SIZE_H + 50) * SCALING}, size = {width = END_B_SIZE_W * SCALING, height = END_B_SIZE_H * SCALING}, sprite = button_sprite, title = "End Turn"}
+
+  --Side which is currently playing
+  side_turn = 1
 end
 
 function love.draw()
@@ -73,6 +89,26 @@ function love.draw()
     for i, square in ipairs(squares) do
       square:draw()
     end
+  end
+  
+  --Displaying buttons
+    --End Turn button
+  end_turn_b:draw()
+end
+
+--GLOBAL GAME FUNCTIONS
+
+function changeTurn()
+  local nbPlayers = #TEAM_COLORS
+  if side_turn == nbPlayers then
+    side_turn = 1
+  else
+    side_turn = side_turn + 1
+  end
+  
+  --Allow all units to be played again
+  for _, u in ipairs(units_by_side[side_turn]) do
+    u.has_acted = false
   end
 end
 
@@ -147,12 +183,29 @@ end
 Square = Entity:new()
 Square.size = {width = EFF_TILE_SIZE, height = EFF_TILE_SIZE}
 
+--Button's prototype
+Button = Entity:new()
+Button.title = "None"
+function Button:draw()
+  love.graphics.draw(self.sprite, self.pos.x, self.pos.y, 0, SCALING, SCALING)
+  font = love.graphics.newFont(32)
+  love.graphics.setFont(font)
+  --Black text
+  love.graphics.setColor(0, 0, 0)
+  love.graphics.print(self.title, self.pos.x + self.size.width / 2 - font:getWidth(self.title) / 2, self.pos.y + self.size.height / 2 - font:getHeight() / 2)
+  
+  --Reset initial color
+  love.graphics.setColor(255, 255, 255)
+end
+
+
 --Unit's prototype
 Unit = Entity:new()
 Unit.move = 0
 Unit.size = {width = EFF_TILE_SIZE, height = EFF_TILE_SIZE}
 Unit.sprite = love.graphics.newImage("graphics/units/square.png")
 Unit.color_sprites = {}
+Unit.has_acted = false
 
 function Unit:accessibleSquares(map)
   --Check if the calcul hasn't be already done
@@ -214,14 +267,12 @@ end
 require("data/units/soldier")
   --Create soldier's prototype
 Soldier = createUnitPrototype(Soldier_data)
-print(Soldier)
 
 --Lancer
   --Load lancer's data
 require("data/units/lancer")
   --Create lancer's prototype
 Lancer = createUnitPrototype(Lancer_data)
-print(Lancer)
 
 --Map's prototype
 Map = Entity:new()
@@ -231,6 +282,13 @@ Map.units = {}
 
 function Map:draw()
   love.graphics.draw(self.sprite, self.screen_part, self.pos.x, self.pos.y, 0, SCALING, SCALING)
+end
+
+function Map:isTouched(x, y)
+  local _, _, w, h = self.screen_part:getViewport()
+  w = w * SCALING
+  h = h * SCALING
+  return x >= self.pos.x and x < self.pos.x + w and y >= self.pos.y and y < self.pos.y + h
 end
 
 function Map:squareIsEmpty(square)
@@ -271,15 +329,22 @@ end
 
 function love.mousepressed(x, y, button)
    if button == 1 then
-      if selected_unit then
-        selected_unit:unselect()
-        selected_unit = nil
-      end
-      for i, u in ipairs(units) do
-        if u:isTouched(x, y) then
-          selected_unit = u
-          return
+      --Check if click is on map
+      if map:isTouched(x, y) then
+        if selected_unit then
+          selected_unit:unselect()
+          selected_unit = nil
         end
+        for i, u in ipairs(units) do
+          if u:isTouched(x, y) and u.side == side_turn and not u.has_acted then
+            selected_unit = u
+            return
+          end
+        end
+      end
+      --Check if click is on a button
+      if end_turn_b:isTouched(x, y) then
+        changeTurn()
       end
    end
    
@@ -289,6 +354,7 @@ function love.mousepressed(x, y, button)
       for i, square in ipairs(available_moves) do
         if square:isTouched(x, y) then
           selected_unit:moveTo(square)
+          selected_unit.has_acted = true
           selected_unit = nil
           return
         end
