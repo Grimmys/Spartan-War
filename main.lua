@@ -13,8 +13,8 @@ WINDOW_WIDTH = EFF_TILE_SIZE * TILES_LIMIT_W + BORDER_SIZE_W * 2
 WINDOW_HEIGHT = EFF_TILE_SIZE * TILES_LIMIT_H + BORDER_SIZE_H * 2
 
 -- Buttons size
-END_B_SIZE_W = 400
-END_B_SIZE_H = 100
+END_B_SIZE_W = 256
+END_B_SIZE_H = 128
 
 -- Game paramaters (actually, they are fixed)
 TEAM_COLORS = {
@@ -33,7 +33,7 @@ function love.load()
     possible_move = love.graphics.newImage("graphics/grid_indicators/move.png")
     
     --Button's frame
-    button_sprite = love.graphics.newImage("graphics/interface/button_frame.png")
+    button_sprite = love.graphics.newImage("graphics/interface/end_button.png")
   
   --Map creation
   map_sprite = love.graphics.newImage("graphics/maps/first_map.png")
@@ -188,10 +188,10 @@ Button = Entity:new()
 Button.title = "None"
 function Button:draw()
   love.graphics.draw(self.sprite, self.pos.x, self.pos.y, 0, SCALING, SCALING)
-  font = love.graphics.newFont(32)
+  font = love.graphics.newFont(26)
   love.graphics.setFont(font)
-  --Black text
-  love.graphics.setColor(0, 0, 0)
+  --White text
+  love.graphics.setColor(255, 255, 255)
   love.graphics.print(self.title, self.pos.x + self.size.width / 2 - font:getWidth(self.title) / 2, self.pos.y + self.size.height / 2 - font:getHeight() / 2)
   
   --Reset initial color
