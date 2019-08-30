@@ -43,6 +43,12 @@ function love.load()
   --Part of the map visible at screen
   map.screen_part = love.graphics.newQuad(0, 0, TILE_SIZE * TILES_LIMIT_W, TILE_SIZE * TILES_LIMIT_H, MAP_WIDTH, MAP_HEIGHT)
   
+  --Load map's obstacles
+  require("data/maps/first_map")
+  for i, pos in ipairs(first_map_obstacles) do
+    table.insert(map.obstacles, {x = EFF_TILE_SIZE * pos.x + map.pos.x, y = EFF_TILE_SIZE * pos.y + map.pos.y})
+  end
+  
   --First units (for testing) creation
     -- red is first team, black is second team
   units_by_side = {}
