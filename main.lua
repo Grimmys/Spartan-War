@@ -48,6 +48,14 @@ function love.load()
   for i, pos in ipairs(first_map_obstacles) do
     table.insert(map.obstacles, {x = EFF_TILE_SIZE * pos.x + map.pos.x, y = EFF_TILE_SIZE * pos.y + map.pos.y})
   end
+  for i, el in ipairs(first_map_directed_obstacles) do
+    table.insert(map.directed_obstacles, {from = {x = EFF_TILE_SIZE * el.from.x + map.pos.x, y = EFF_TILE_SIZE * el.from.y + map.pos.y},
+                                          to = {x = EFF_TILE_SIZE * el.to.x + map.pos.x, y = EFF_TILE_SIZE * el.to.y + map.pos.y}})
+  end
+  for i, el in ipairs(first_map_double_directed_obstacles) do
+    table.insert(map.double_directed_obstacles, {first = {x = EFF_TILE_SIZE * el.first.x + map.pos.x, y = EFF_TILE_SIZE * el.first.y + map.pos.y},
+                                          sec = {x = EFF_TILE_SIZE * el.sec.x + map.pos.x, y = EFF_TILE_SIZE * el.sec.y + map.pos.y}})
+  end
   
   --First units (for testing) creation
     -- red is first team, black is second team
@@ -284,6 +292,8 @@ Lancer = createUnitPrototype(Lancer_data)
 Map = Entity:new()
 Map.screen_part = {}
 Map.obstacles = {}
+Map.directed_obstacles = {}
+Map.double_directed_obstacles = {}
 Map.units = {}
 
 function Map:draw()
@@ -297,24 +307,44 @@ function Map:isTouched(x, y)
   return x >= self.pos.x and x < self.pos.x + w and y >= self.pos.y and y < self.pos.y + h
 end
 
-function Map:squareIsEmpty(square)
+function Map:squareIsEmpty(from, square)
   --Checking if square is not beyond map limit
-  if square.pos.x >= map.pos.x and square.pos.x < map.size.width and square.pos.y >= map.pos.y and square.pos.y < map.size.height then
-    --Checking if there is no obstacle on the square
-    for i, o in ipairs(self.obstacles) do
-      if square.pos.x == o.x and square.pos.y == o.y then
-        return false
-      end
-    end
-    --Checking if there is no other unit on the square
-    for i, u in ipairs(self.units) do
-      if square.pos.x == u.pos.x and square.pos.y == u.pos.y then
-        return false
-      end
-    end
-    return true
+  if not(square.pos.x >= map.pos.x and square.pos.x < map.size.width and square.pos.y >= map.pos.y and square.pos.y < map.size.height) then
+    return false
   end
-  return false
+  --Checking if there is no obstacle on the square
+  for i, o in ipairs(self.obstacles) do
+    if square.pos.x == o.x and square.pos.y == o.y then
+      return false
+    end
+  end
+  --Checking if there is no other unit on the square
+  for i, u in ipairs(self.units) do
+    if square.pos.x == u.pos.x and square.pos.y == u.pos.y then
+      return false
+    end
+  end
+  --Checking if origin tile (i.e. from) is not implied in a forbidden direction
+  for i, el in ipairs(self.directed_obstacles) do
+    if from.pos.x == el.from.x and from.pos.y == el.from.y then
+      if square.pos.x == el.to.x and square.pos.y == el.to.y then
+        return false
+      end
+    end
+  end
+  for i, el in ipairs(self.double_directed_obstacles) do
+    if from.pos.x == el.first.x and from.pos.y == el.first.y then
+      if square.pos.x == el.sec.x and square.pos.y == el.sec.y then
+        return false
+      end
+    end
+    if from.pos.x == el.sec.x and from.pos.y == el.sec.y then
+      if square.pos.x == el.first.x and square.pos.y == el.first.y then
+        return false
+      end
+    end
+  end
+  return true
 end
 
 --Method to check all available squares next to the one given
@@ -323,8 +353,8 @@ function Map:nextAvailableSquares(sq)
 
   local squares = {} --Array for available squares
   for i, dir in ipairs(directions) do
-    local square = Square:new{pos = {x = sq.pos.x + dir.x * EFF_TILE_SIZE, y = sq.pos.y + dir.y * EFF_TILE_SIZE}, sprite = possible_move} --Square to test
-    if self:squareIsEmpty(square) then
+    local square = Square:new{pos = {x = sq.pos.x + dir.x * EFF_TILE_SIZE, y = sq.pos.y + dir.y * EFF_TILE_SIZE}, sprite = possible_move}         --Square to test
+    if self:squareIsEmpty(sq, square) then
       table.insert(squares, square)
     end
   end
